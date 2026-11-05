@@ -3,8 +3,8 @@ title: QANTUM
 emoji: ⚛️
 colorFrom: green
 colorTo: yellow
-sdk: docker
-app_port: 7860
+sdk: static
+app_file: index.html
 pinned: false
 short_description: Quantum vs classical portfolio optimisation on NIFTY 50
 ---

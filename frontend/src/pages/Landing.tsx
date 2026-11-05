@@ -26,18 +26,24 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   );
 }
 
+/** Scrolls within the page without touching the URL, which may be holding the route. */
+function jump(event: React.MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  document.getElementById(event.currentTarget.hash.slice(1))?.scrollIntoView();
+}
+
 function Nav() {
   const link = "hidden items-center px-3.5 text-[13px] font-semibold text-dim transition-colors duration-100 hover:text-text sm:flex";
   return (
     <header className="fixed inset-x-0 top-0 z-40 flex h-12 items-stretch justify-between border-b border-line bg-ink pl-4 md:pl-5">
-      <a href="#top" className="flex items-center" aria-label="QANTUM home">
+      <a href="#top" onClick={jump} className="flex items-center" aria-label="QANTUM home">
         <Wordmark className="text-[17px]" />
       </a>
       <nav className="flex items-stretch" aria-label="Main">
-        <a href="#how" className={link}>
+        <a href="#how" onClick={jump} className={link}>
           How it works
         </a>
-        <a href="#play" className={link}>
+        <a href="#play" onClick={jump} className={link}>
           Try it
         </a>
         <TransitionLink to="/team" className="flex items-center px-3.5 text-[13px] font-semibold text-dim transition-colors duration-100 hover:text-text">

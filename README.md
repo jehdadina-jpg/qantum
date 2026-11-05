@@ -6,6 +6,8 @@
 
 Quantum finance. QAOA and amplitude estimation vs classical solvers on real NIFTY 50 data.
 
+**[Live demo](https://huggingface.co/spaces/jehdadina/qantum)**
+
 ![QANTUM](docs/screenshots/hero.png)
 
 </div>

@@ -321,8 +321,21 @@ function detailMessage(detail: unknown): string {
   return "The request failed";
 }
 
+const STATIC_SITE = import.meta.env.VITE_STATIC === "1";
+
+/** Must match file_name in backend/qantum/export_static.py. */
+const staticName = (path: string) => `${path.replace(/^\/+|\/+$/g, "").replace(/[^A-Za-z0-9.-]+/g, "_")}.json`;
+
+async function staticApi<T>(path: string, init?: RequestInit): Promise<T> {
+  if (init?.method && init.method !== "GET") throw new ApiError("This is a read-only demo. Run QANTUM locally to start experiments.", 403);
+  const response = await fetch(`/data/${staticName(path)}`);
+  if (!response.ok) throw new ApiError("This result is not part of the published demo.", response.status);
+  return response.json();
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
+  if (STATIC_SITE) return staticApi<T>(path, init);
   try {
     response = await fetch(`/api${path}`, {
       ...init,

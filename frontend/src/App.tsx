@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, ScrollRestoration } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, createRoutesFromElements, Navigate, Outlet, Route, ScrollRestoration } from "react-router-dom";
 import { Wordmark } from "./components/Wordmark";
 import TerminalLayout from "./pages/terminal/Layout";
 
@@ -49,7 +49,10 @@ function Root() {
   );
 }
 
-export const router = createBrowserRouter(
+// A static host has no app routes to serve on reload, so the published demo keeps them in the hash.
+const createRouter = import.meta.env.VITE_STATIC === "1" ? createHashRouter : createBrowserRouter;
+
+export const router = createRouter(
   createRoutesFromElements(
     <Route element={<Root />}>
       <Route path="/" element={<Landing />} />
