@@ -1,0 +1,15 @@
+# Optional PostgreSQL experiment store. See "PostgreSQL" in README.md.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: qantum
+      POSTGRES_PASSWORD: qantum
+      POSTGRES_DB: qantum
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - qantum-postgres:/var/lib/postgresql/data
+
+volumes:
+  qantum-postgres:

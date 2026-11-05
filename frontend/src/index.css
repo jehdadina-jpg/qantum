@@ -1,0 +1,804 @@
+@import "tailwindcss";
+@import "@fontsource-variable/mona-sans/wdth.css";
+@import "@fontsource-variable/martian-mono/wdth.css";
+@import "katex/dist/katex.min.css";
+
+/*
+  QANTUM's visual world: the page behaves like a qubit.
+    |0> is black. |1> is a full flood of mint. Sections are one state or the other, never between.
+    Gold is reserved for the optimum and for noise-model results, and means "look here".
+    Display type is viewport-scale capitals. Every corner is square.
+
+  Performance rule: anything that moves animates transform or opacity only, which the compositor
+  handles without the main thread. No filters, no backdrop blur, and nothing runs while idle.
+
+  Z-index scale: content 0, sticky nav 30, floating nav 40, menus 50, curtain 70.
+*/
+
+@theme {
+  --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Martian Mono Variable", ui-monospace, monospace;
+
+  --color-ink: #060807;
+  --color-deep: #0a0d0c;
+  --color-panel: #0a0d0c;
+  --color-raised: #151a18;
+  --color-line: rgb(255 255 255 / 0.11);
+  --color-line-strong: rgb(255 255 255 / 0.24);
+  --color-text: #f1f6f3;
+  --color-dim: #a7b4af;
+  --color-faint: #84928d;
+  --color-em: #3cf5b4;
+  --color-em-deep: #0fa578;
+  --color-gold: #ffc83d;
+  --color-loss: #ff7350;
+  --color-sky: #8cc8ff;
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-curtain: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-ink);
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-stretch: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-em);
+  color: var(--color-ink);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer base {
+  /* In a layer, so components such as menu items can replace it with their own highlight. */
+  :focus-visible {
+    outline: 2px solid var(--color-em);
+    outline-offset: 2px;
+  }
+
+  /* No stranded last words, anywhere. */
+  p {
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Viewport-scale capitals, the voice of the landing and team pages. */
+  .poster {
+    font-family: var(--font-sans);
+    font-stretch: 125%;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+    text-transform: uppercase;
+  }
+
+  /* Headings inside the terminal: the same family, without shouting over the data. */
+  .display {
+    font-family: var(--font-sans);
+    font-stretch: 125%;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mono-tight {
+    font-family: var(--font-mono);
+    font-stretch: 75%;
+    letter-spacing: -0.01em;
+  }
+
+  .label {
+    font-family: var(--font-mono);
+    font-stretch: 87.5%;
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+    font-weight: 500;
+  }
+
+  /* A |1> section: a full flood of mint with ink type. */
+  .state-one {
+    background: var(--color-em);
+    color: var(--color-ink);
+    --color-dim: rgb(6 8 7 / 0.72);
+    --color-faint: rgb(6 8 7 / 0.62);
+    --color-line: rgb(6 8 7 / 0.22);
+  }
+
+  /* A panel in the terminal. Flat, with a hairline. The edge brightens through opacity alone. */
+  .glass {
+    position: relative;
+    background: var(--color-panel);
+    box-shadow: inset 0 0 0 1px var(--color-line);
+  }
+
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+    opacity: 0;
+    transition: opacity 160ms ease-out;
+  }
+
+  .glass:hover::before {
+    opacity: 1;
+  }
+
+  .rise {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .rise.is-in {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 520ms ease-out var(--rise-delay, 0ms),
+      transform 760ms var(--ease-smooth-out) var(--rise-delay, 0ms);
+  }
+
+  .stat-enter {
+    animation: stat-enter 520ms var(--ease-smooth-out) backwards;
+  }
+
+  .page-in {
+    animation: page-in 380ms var(--ease-smooth-out) backwards;
+  }
+
+  /* A true left-to-right wipe from transforms alone: the window and its content move oppositely. */
+  .wipe-outer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    animation: wipe-outer 1000ms var(--ease-smooth-out) backwards;
+  }
+
+  .wipe-inner {
+    position: absolute;
+    inset: 0;
+    animation: wipe-inner 1000ms var(--ease-smooth-out) backwards;
+  }
+
+  .grow-in {
+    transform-origin: 50% 100%;
+    animation: grow-in 700ms var(--ease-smooth-out) backwards;
+  }
+
+  .bar-grow {
+    animation: bar-grow 800ms var(--ease-smooth-out) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  .spin-in {
+    animation: spin-in 800ms var(--ease-smooth-out) backwards;
+  }
+
+  .tile-in {
+    animation: tile-in 420ms var(--ease-smooth-out) backwards;
+    animation-delay: calc(var(--i, 0) * 7ms);
+  }
+
+  .value-pop {
+    display: inline-block;
+    animation: value-pop 300ms var(--ease-smooth-out) backwards;
+  }
+
+  .digits {
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+  }
+
+  .reel {
+    display: inline-block;
+    height: 1.2em;
+    line-height: 1.2em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+
+  .reel-track {
+    display: block;
+    transition: transform 1200ms var(--ease-smooth-out);
+  }
+
+  .reel-track > span {
+    display: block;
+    height: 1.2em;
+    text-align: center;
+  }
+
+  .skeleton {
+    background: rgb(255 255 255 / 0.06);
+    animation: breathe 1.6s ease-in-out infinite;
+  }
+
+  .breathe-text,
+  .live-dot {
+    animation: breathe 1.4s ease-in-out infinite;
+  }
+
+  /* Sliding highlight behind tabs. Positioned by useSlidingPill. */
+  .pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition:
+      transform 260ms var(--ease-smooth-out),
+      width 260ms var(--ease-smooth-out);
+  }
+
+  .press {
+    transition: transform 140ms var(--ease-smooth-out);
+  }
+
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  .nudge {
+    transition: transform 220ms var(--ease-smooth-out);
+  }
+
+  .group:hover .nudge {
+    transform: translateX(4px);
+  }
+
+  /* The block button: a white fill rises from below on hover. */
+  .fill-button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--color-em);
+    color: var(--color-ink);
+  }
+
+  .fill-button::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    background: var(--color-text);
+    transform: scaleY(0);
+    transform-origin: 50% 100%;
+    transition: transform 260ms var(--ease-smooth-out);
+  }
+
+  .fill-button:hover::after {
+    transform: scaleY(1);
+  }
+
+  .fill-button:disabled {
+    background: var(--color-raised);
+    color: var(--color-dim);
+  }
+
+  .fill-button:disabled::after {
+    display: none;
+  }
+
+  /* A row in the module list: the same rising fill, across the full width of the page. */
+  .fill-row {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .fill-row::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-ink);
+    transform: scaleY(0);
+    transform-origin: 50% 100%;
+    transition: transform 320ms var(--ease-smooth-out);
+  }
+
+  .fill-row:hover::after {
+    transform: scaleY(1);
+  }
+
+  .fill-row:hover {
+    color: var(--color-em);
+    --color-dim: rgb(241 246 243 / 0.75);
+  }
+
+  /* The wall of portfolios. Two canvases crossfade between QAOA layers. */
+  .wall-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 620ms ease-in-out;
+  }
+
+  .wall-frame.is-on {
+    opacity: 1;
+  }
+
+  .wall-cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px var(--color-text);
+  }
+
+  /* Without scroll-driven animation the stage is simply two screens, one after the other. */
+  .stage-pin {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stage-hero {
+    position: relative;
+    height: 100dvh;
+    min-height: 620px;
+  }
+
+  .stage-answer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12vh 20px;
+    text-align: center;
+  }
+
+  .line-mask {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
+  }
+
+  .line-rise {
+    display: block;
+    animation: line-rise 1000ms var(--ease-smooth-out) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  .soft-in {
+    animation: stat-enter 700ms var(--ease-smooth-out) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  .word {
+    display: inline-block;
+    margin-right: 0.22em;
+    opacity: 0.08;
+    transform: translateY(0.3em);
+    transition:
+      opacity 520ms ease-out calc(var(--i) * 110ms),
+      transform 760ms var(--ease-smooth-out) calc(var(--i) * 110ms);
+  }
+
+  .is-in .word {
+    opacity: 1;
+    transform: none;
+  }
+
+  .stage-plus {
+    transition: transform 280ms var(--ease-smooth-out);
+  }
+
+  [aria-expanded="true"] .stage-plus {
+    transform: rotate(45deg);
+  }
+
+  .stage-word {
+    transition: transform 320ms var(--ease-smooth-out);
+  }
+
+  .stage-row:hover .stage-word {
+    transform: translateX(1.2vw);
+  }
+
+  .bar-slot {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    transform-origin: 50% 100%;
+    transition: transform 280ms var(--ease-smooth-out);
+  }
+
+  /* Range input with a filled track and a square thumb. Set --fill inline. */
+  .range {
+    appearance: none;
+    background: transparent;
+    width: 100%;
+    height: 24px;
+    cursor: pointer;
+    --fill: 50%;
+  }
+
+  .range::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-em) var(--fill), var(--color-line-strong) var(--fill));
+  }
+
+  .range::-moz-range-track {
+    height: 2px;
+    background: var(--color-line-strong);
+  }
+
+  .range::-moz-range-progress {
+    height: 2px;
+    background: var(--color-em);
+  }
+
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: 10px;
+    height: 20px;
+    margin-top: -9px;
+    background: var(--color-text);
+    transition: transform 140ms var(--ease-smooth-out);
+  }
+
+  .range::-moz-range-thumb {
+    width: 10px;
+    height: 20px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-text);
+  }
+
+  .range:hover::-webkit-slider-thumb,
+  .range:active::-webkit-slider-thumb {
+    transform: scaleX(1.5);
+  }
+
+  .menu[data-state="open"] {
+    animation: menu-open 180ms var(--ease-smooth-out) backwards;
+  }
+
+  .menu[data-state="closed"] {
+    animation: menu-close 110ms ease-in forwards;
+  }
+
+  .toggle-thumb {
+    transition: transform 220ms var(--ease-smooth-out);
+  }
+
+  .caret {
+    transition: transform 220ms var(--ease-smooth-out);
+  }
+
+  .chart text[font-family] {
+    font-stretch: 75%;
+  }
+
+  /* Top-level page change: a state flip. Mint sweeps up, ink follows, then both leave. */
+  .curtain {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+    visibility: hidden;
+    transform: translateY(100%);
+  }
+
+  .curtain-mint {
+    background: var(--color-em);
+  }
+
+  .curtain-ink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-ink);
+  }
+
+  .curtain-mark {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  html[data-curtain="in"] .curtain {
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition: transform 440ms var(--ease-curtain);
+  }
+
+  html[data-curtain="in"] .curtain-ink {
+    transition-delay: 70ms;
+  }
+
+  html[data-curtain="in"] .curtain-mark {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 240ms ease-out 200ms,
+      transform 340ms var(--ease-smooth-out) 200ms;
+  }
+
+  html[data-curtain="out"] .curtain {
+    visibility: visible;
+    transform: translateY(-100%);
+    transition: transform 500ms var(--ease-curtain);
+  }
+
+  html[data-curtain="out"] .curtain-mint {
+    transition-delay: 70ms;
+  }
+
+  html[data-curtain="out"] .curtain-mark {
+    opacity: 1;
+  }
+}
+
+.katex {
+  font-size: 1.1em;
+}
+
+/* KaTeX ships unlayered styles, so equations are aligned here rather than with utilities. */
+.eq-left .katex-display {
+  margin: 0;
+  text-align: left;
+}
+
+.eq-left .katex-display > .katex {
+  text-align: left;
+}
+
+@keyframes stat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--page-dir, 1) * 28px));
+  }
+}
+
+@keyframes wipe-outer {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes wipe-inner {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes grow-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.82);
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes spin-in {
+  from {
+    opacity: 0;
+    transform: rotate(-70deg) scale(0.9);
+  }
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes value-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes line-rise {
+  from {
+    transform: translateY(110%);
+  }
+}
+
+@keyframes menu-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes menu-close {
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+  The signature moment. Scrolling the first screen flies you into the gold string on the wall until
+  it fills the screen. It runs on the compositor with no scroll listener, and the string's starting
+  position and scale (--ox, --oy, --os) are measured from where it really sits on the wall.
+*/
+@keyframes wall-recede {
+  to {
+    opacity: 0.1;
+    transform: scale(1.14);
+  }
+}
+
+@keyframes copy-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-16vh);
+  }
+}
+
+@keyframes bits-fly {
+  0% {
+    opacity: 0;
+    transform: translate(var(--ox, 0), var(--oy, 0)) scale(var(--os, 0.1));
+  }
+  4% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes meta-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(5vh);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .stage {
+      height: 300vh;
+      view-timeline-name: --collapse;
+      view-timeline-axis: block;
+    }
+
+    .stage-pin {
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+    }
+
+    .stage-hero {
+      min-height: 0;
+    }
+
+    .stage-answer {
+      position: absolute;
+      inset: 0;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .stage-wall {
+      animation: wall-recede linear both;
+      animation-timeline: --collapse;
+      animation-range: contain 0% contain 42%;
+    }
+
+    .stage-copy {
+      animation: copy-leave linear both;
+      animation-timeline: --collapse;
+      animation-range: contain 0% contain 20%;
+    }
+
+    .answer-bits {
+      animation: bits-fly linear both;
+      animation-timeline: --collapse;
+      animation-range: contain 6% contain 58%;
+    }
+
+    .answer-meta {
+      animation: meta-arrive linear both;
+      animation-timeline: --collapse;
+      animation-range: contain 52% contain 74%;
+      pointer-events: auto;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .breathe-text,
+  .live-dot,
+  .stat-enter,
+  .page-in,
+  .wipe-outer,
+  .wipe-inner,
+  .grow-in,
+  .bar-grow,
+  .spin-in,
+  .tile-in,
+  .value-pop,
+  .line-rise,
+  .soft-in,
+  .menu {
+    animation: none !important;
+  }
+
+  .rise,
+  .word {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .reel-track,
+  .toggle-thumb,
+  .wall-frame,
+  .pill,
+  .bar-slot,
+  .press,
+  .fill-button::after,
+  .fill-row::after,
+  .stage-word {
+    transition: none;
+  }
+}
