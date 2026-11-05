@@ -1,0 +1,11 @@
+.git
+.claude
+docs
+*.pdf
+*.docx
+**/__pycache__
+**/.pytest_cache
+backend/.venv
+backend/*.db*
+frontend/node_modules
+frontend/dist

@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, post, type Run, type RunHeader, type RunKind } from "./api";
+import { api, post, type Meta, type Run, type RunHeader, type RunKind } from "./api";
+
+let readOnlyRequest: Promise<boolean> | null = null;
+
+/** Whether this server is a read-only demo. Asked once per page load. */
+export function useReadOnly() {
+  const [readOnly, setReadOnly] = useState(false);
+  useEffect(() => {
+    readOnlyRequest ??= api<Meta>("/meta").then((meta) => meta.read_only).catch(() => false);
+    void readOnlyRequest.then(setReadOnly);
+  }, []);
+  return readOnly;
+}
 
 export function useFetch<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);

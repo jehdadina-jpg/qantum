@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Empty, ErrorNote, PageHead, Panel, Segmented, Skeleton, Td, Th } from "../../components/ui";
 import { api, type Run, type RunHeader } from "../../lib/api";
 import { dateTime, shortHash } from "../../lib/format";
-import { sameRuns } from "../../lib/hooks";
+import { sameRuns, useReadOnly } from "../../lib/hooks";
 
 const KINDS = ["all", "optimise", "risk", "simulate", "benchmark", "backtest", "refresh"];
 
@@ -16,6 +16,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export default function Runs() {
+  const readOnly = useReadOnly();
   const [kind, setKind] = useState("all");
   const [runs, setRuns] = useState<RunHeader[] | null>(null);
   const [selected, setSelected] = useState<RunHeader | null>(null);
@@ -150,7 +151,7 @@ export default function Runs() {
                 <button onClick={() => download(selected.id)} className="flex h-8 flex-1 items-center justify-center gap-1.5 bg-white/[0.055] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)] text-[12px] transition-colors hover:bg-white/[0.04]">
                   <DownloadSimple size={14} /> Export JSON
                 </button>
-                {confirming ? (
+                {readOnly ? null : confirming ? (
                   <button onClick={() => remove(selected.id)} className="flex h-8 flex-1 items-center justify-center gap-1.5 bg-loss text-[12px] font-semibold text-ink">
                     Confirm delete
                   </button>

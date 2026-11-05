@@ -26,5 +26,8 @@ MAX_EXACT_QUBITS = int(os.getenv("QANTUM_MAX_EXACT_QUBITS", "24"))
 JOB_WORKERS = int(os.getenv("QANTUM_JOB_WORKERS", "2"))
 SEED_ON_START = os.getenv("QANTUM_SEED_ON_START", "1") == "1"
 
+# For a public demo: visitors can read every stored run but cannot start or delete anything.
+READ_ONLY = os.getenv("QANTUM_READ_ONLY", "0") == "1"
+
 IBM_TOKEN = os.getenv("QANTUM_IBM_TOKEN", "")
 IBM_BACKEND = os.getenv("QANTUM_IBM_BACKEND", "")

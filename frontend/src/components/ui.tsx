@@ -3,6 +3,7 @@ import * as RadixSelect from "@radix-ui/react-select";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { RunHeader } from "../lib/api";
 import { dateTime, shortHash } from "../lib/format";
+import { useReadOnly } from "../lib/hooks";
 import { useRise, useSlidingPill } from "../lib/motion";
 import { Value } from "./Digits";
 
@@ -187,6 +188,10 @@ export function Group({ title, children, defaultOpen = true }: { title: string; 
 }
 
 export function RunButton({ children, onClick, busy, disabled }: { children: ReactNode; onClick: () => void; busy?: boolean; disabled?: boolean }) {
+  const readOnly = useReadOnly();
+  if (readOnly) {
+    return <p className="bg-raised px-4 py-3 text-[12.5px] leading-snug text-dim">Read-only demo. Run QANTUM locally to start experiments.</p>;
+  }
   return (
     <button onClick={onClick} disabled={busy || disabled} className="fill-button press group flex h-11 w-full items-center justify-between px-4 text-[13px] font-bold disabled:cursor-not-allowed">
       <span className={busy ? "breathe-text" : ""}>{children}</span>

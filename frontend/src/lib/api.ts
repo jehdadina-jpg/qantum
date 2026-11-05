@@ -26,6 +26,7 @@ export interface Run<T = unknown> extends RunHeader {
 
 export interface Meta {
   version: string;
+  read_only: boolean;
   snapshot: { id: string; fetched_at: string; start: string; end: string; sessions: number; sha256: string; source: string; excluded: string[] };
   symbols: number;
   risk_free: number;

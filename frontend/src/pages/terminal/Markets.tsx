@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { HeatMatrix, LineChart, COLORS, Spark, Treemap } from "../../components/charts";
 import { ErrorNote, PageHead, Panel, Segmented, Skeleton, Stat, Td, Th } from "../../components/ui";
 import { post, type Overview, type Quality, type RunHeader } from "../../lib/api";
-import { useFetch } from "../../lib/hooks";
+import { useFetch, useReadOnly } from "../../lib/hooks";
 import { compact, date, dateTime, int, num, pct, shortHash, signedPct } from "../../lib/format";
 
 const HORIZONS = ["1D", "1W", "1M", "3M", "1Y"];
@@ -17,6 +17,7 @@ interface Estimates {
 }
 
 export default function Markets() {
+  const readOnly = useReadOnly();
   const { data: overview, error, loading } = useFetch<Overview>("/market/overview");
   const { data: quality } = useFetch<Quality>("/market/quality");
   const { data: estimates } = useFetch<Estimates>("/market/estimates?n=16");
@@ -56,10 +57,10 @@ export default function Markets() {
           <span className="mono-tight text-[11px] text-dim tnum">
             as of {date(overview.as_of)}, fetched {dateTime(overview.fetched_at)}
           </span>
-          <button onClick={startRefresh} disabled={refresh !== null} className="flex h-7 items-center gap-1.5 bg-white/[0.055] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)] px-2.5 text-[12px] text-text transition-colors hover:bg-white/[0.04] disabled:text-dim">
+          {!readOnly && <button onClick={startRefresh} disabled={refresh !== null} className="flex h-7 items-center gap-1.5 bg-white/[0.055] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)] px-2.5 text-[12px] text-text transition-colors hover:bg-white/[0.04] disabled:text-dim">
             <ArrowsClockwise size={13} />
             {refresh ? "Refresh queued" : "Refresh prices"}
-          </button>
+          </button>}
         </div>
       </PageHead>
       {refreshError && (

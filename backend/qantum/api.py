@@ -6,14 +6,14 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
 
 from . import __version__, jobs, store
-from .config import FRONTEND_DIST, IBM_TOKEN, MAX_EXACT_QUBITS, RISK_FREE_RATE, SEED_ON_START
+from .config import FRONTEND_DIST, IBM_TOKEN, MAX_EXACT_QUBITS, READ_ONLY, RISK_FREE_RATE, SEED_ON_START
 from .data import eligible_symbols, estimate, load_snapshot, select_universe
 from .formulation import PortfolioInstance, calibrate_penalty, ising
 from .quantum.circuits import circuit_resources, gate_list, qaoa_circuit
@@ -30,6 +30,13 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="QANTUM", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def block_writes_when_read_only(request: Request, call_next):
+    if READ_ONLY and request.url.path.startswith("/api/") and request.method not in ("GET", "HEAD", "OPTIONS"):
+        return JSONResponse({"detail": "This is a read-only demo. Run QANTUM locally to start experiments."}, status_code=403)
+    return await call_next(request)
 
 
 class QaoaSpec(BaseModel):
@@ -174,6 +181,7 @@ def meta() -> dict:
     snapshot = load_snapshot().meta
     return {
         "version": __version__,
+        "read_only": READ_ONLY,
         "snapshot": {k: snapshot[k] for k in ("id", "fetched_at", "start", "end", "sessions", "sha256", "source", "excluded")},
         "symbols": len(snapshot["tickers"]),
         "risk_free": RISK_FREE_RATE,
